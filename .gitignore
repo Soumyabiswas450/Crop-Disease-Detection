@@ -179,3 +179,16 @@ cython_debug/
 analysis_history.sqlite3*
 static/severity_uploads/
 static/uploads/
+
+# YOLO training and testing dataset
+/data file/
+/external_rice_data/
+
+# IDE configuration
+.idea/
+
+# Model training outputs
+/runs/
+
+# Temporary test outputs
+/test_outputs/
