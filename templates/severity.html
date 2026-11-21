@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AgroVision | Disease Severity Estimation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/severity.css') }}">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar"><a class="brand" href="/">✳ agro<span>vision</span></a><div class="side-label">WORKSPACE</div>
+      <a class="nav" href="/">⌂ &nbsp; Overview</a><a class="nav" href="/#detector">◎ &nbsp; Disease detector</a><a class="nav active" href="/severity">◉ &nbsp; Severity estimation</a>
+      <a class="nav" href="/history">◷ &nbsp; Recent analysis</a><div class="side-note"><b>FIELD INTELLIGENCE</b><p>Pixel-level color segmentation is used to estimate visible lesion coverage.</p></div>
+    </aside>
+    <main class="main"><header><span>Workspace / <b>Disease severity estimation</b></span><span class="ready">● Experimental pixel segmentation</span></header>
+      <section class="intro"><div class="eyebrow">RICE HEALTH · ANALYSIS WORKSPACE · VERSION 3.5</div><h1>Disease severity <em>estimation</em></h1><p>Upload one clear rice leaf image. The module isolates a leaf region, marks candidate brown/dark lesion pixels, and calculates their proportion of the segmented leaf pixels.</p></section>
+      <div class="grid">
+        <section class="card"><div class="card-head"><div><h2>Upload leaf image</h2><p>Best results: one leaf, sharp focus, even lighting, contrasting background.</p></div><span>01</span></div>
+          <form method="POST" enctype="multipart/form-data"><label class="drop"><span class="upload">↑</span><b>Choose a rice leaf image</b><small>PNG, JPG or JPEG</small><input type="file" name="file" accept=".png,.jpg,.jpeg" required></label><button type="submit">Segment &amp; estimate severity <span>↗</span></button></form>
+          {% if error %}<div class="error">{{ error }}</div>{% endif %}
+        </section>
+        <section class="card result"><div class="card-head"><div><h2>Pixel segmentation result</h2><p>Red = candidate lesions; dark background = excluded pixels</p></div><span>02</span></div>
+          {% if image_url %}
+            <div class="image-pair"><figure><img class="result-image" src="{{ image_url }}" alt="Original uploaded leaf"><figcaption>Original image</figcaption></figure>{% if overlay_url %}<figure><img class="result-image" src="{{ overlay_url }}" alt="Red overlay showing segmented lesion pixels"><figcaption>Segmented lesion overlay</figcaption></figure>{% endif %}</div>
+            <div class="metric"><small>Experimental pixel-level estimate</small><strong>{{ severity_label }}</strong></div>
+            {% if severity_percent is not none %}<div class="coverage"><div><span>Candidate lesion pixels / segmented leaf pixels</span><b>{{ '%.2f'|format(severity_percent) }}%</b></div><div class="bar"><i style="width: {{ [severity_percent, 100]|min }}%"></i></div></div>
+            <div class="pixel-stats"><div><b>{{ '{:,}'.format(lesion_pixels) }}</b><span>Candidate lesion pixels</span></div><div><b>{{ '{:,}'.format(leaf_pixels) }}</b><span>Segmented leaf pixels</span></div></div>
+            {% endif %}<h3>Detected disease classes (YOLO context)</h3>{% if detections_data %}<ul>{% for item in detections_data %}<li><span>{{ item.name }}</span><b>{{ item.confidence }}% model confidence</b></li>{% endfor %}</ul>{% else %}<p class="muted">No disease-class detections were returned by YOLO.</p>{% endif %}
+            {% if leaf_mask_url %}<details class="mask-details"><summary>View segmented leaf mask (white = leaf, black = background)</summary><img class="mask-image" src="{{ leaf_mask_url }}" alt="Binary leaf mask"></details>{% endif %}
+          {% else %}<div class="empty"><div>⌁</div><h3>Your result will appear here</h3><p>Upload a clear image of one rice leaf to view the pixel segmentation.</p></div>{% endif %}
+        </section>
+      </div>
+      {% include "recent.html" %}<section class="notice"><b>Important scientific limitation</b><p>This Version 3.5 module performs GrabCut foreground refinement with adaptive HSV seeds and color-threshold segmentation of brown/dark pixels inside an automatically isolated foreground region. The percentage is a pixel-mask proportion, not a validated biological severity score. Shadows, lighting, background foliage, blur, yellow lesions, and symptoms whose color resembles healthy tissue can affect the result. YOLO is used only to provide disease-class context; its bounding boxes do not determine this percentage. Validate the masks against expert-labelled pixel masks before reporting accuracy or using the value for agricultural decisions. For reliable general-purpose measurement, train and evaluate a dedicated segmentation model using pixel-level lesion annotations.</p></section>
+      <footer>AGROVISION · VERSION 3.5 DEVELOPMENT</footer>
+    </main>
+  </div>
+</body></html>

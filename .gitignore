@@ -172,3 +172,10 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+# AgroVision analysis history
+/analysis_history.sqlite3*
+/static/severity_uploads/
+# AgroVision generated files
+analysis_history.sqlite3*
+static/severity_uploads/
+static/uploads/
