@@ -84,9 +84,51 @@
 
           <div class="panel result-panel" id="results">
             <div class="panel-heading"><div><h3>Detection results</h3><p>AI-annotated image and class summary.</p></div><span class="panel-number">02</span></div>
-            {% if output_image %}
-              <div class="result-image-wrap"><img src="{{ output_image }}" alt="YOLO annotated rice leaf detection result" class="result-image"></div>
-              <div class="result-meta"><span class="result-indicator"><i></i> ANALYSIS COMPLETE</span><a href="{{ output_image }}" download class="download-link">Download image ↗</a></div>
+{% if output_image %}
+
+  <div class="comparison-grid">
+
+    <!-- Original Image -->
+    <div class="comparison-card">
+      <div class="summary-title">ORIGINAL IMAGE</div>
+      <div class="result-image-wrap">
+        <img src="{{ original_image }}" alt="Original rice leaf image" class="result-image">
+      </div>
+    </div>
+
+    <!-- YOLO Detection -->
+    <div class="comparison-card">
+      <div class="summary-title">YOLO DETECTION</div>
+      <div class="result-image-wrap">
+        <img src="{{ output_image }}" alt="YOLO detection result" class="result-image">
+      </div>
+      <div class="result-meta">
+        <span class="result-indicator"><i></i> ANALYSIS COMPLETE</span>
+        <a href="{{ output_image }}" download class="download-link">Download ↗</a>
+      </div>
+    </div>
+
+    <!-- EigenCAM -->
+    {% if xai_image %}
+    <div class="comparison-card">
+      <div class="summary-title">EXPLAINABLE AI <span>EigenCAM</span></div>
+      <div class="result-image-wrap">
+        <img src="{{ xai_image }}" alt="EigenCAM visualization" class="result-image">
+      </div>
+      <div class="result-meta">
+        <span class="result-indicator"><i></i> VISUAL EXPLANATION</span>
+        <a href="{{ xai_image }}" download class="download-link">Download ↗</a>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <p class="knowledge-disclaimer">
+    EigenCAM visualizes feature activation in the model. It is an exploratory explanation, not proof of the exact reasoning behind a prediction.
+  </p>
+
+
               <div class="summary-title">DETECTED CLASSES <span>{{ disease_summary|length }} class{% if disease_summary|length != 1 %}es{% endif %}</span></div>
               {% if disease_summary %}
                 <div class="disease-list">

@@ -1151,3 +1151,64 @@ h1 em,h2 em {
     padding: 20px;
     margin-top: 20px;
 }
+
+/* ===== AgroVision Image Comparison ===== */
+
+.comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px;
+    margin: 20px 0;
+}
+
+.comparison-card {
+    min-width: 0;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(128, 128, 128, 0.2);
+    border-radius: 14px;
+    padding: 12px;
+    overflow: hidden;
+}
+
+.comparison-card .summary-title {
+    margin-bottom: 12px;
+}
+
+.comparison-card .result-image-wrap {
+    width: 100%;
+    overflow: hidden;
+    border-radius: 10px;
+}
+
+.comparison-card .result-image {
+    display: block;
+    width: 100%;
+    height: auto;
+    object-fit: contain;
+}
+
+.comparison-card .result-meta {
+    margin-top: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+}
+
+.comparison-grid + .knowledge-disclaimer {
+    margin-top: 12px;
+}
+
+/* Responsive layout */
+@media (max-width: 1000px) {
+    .comparison-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    .comparison-grid {
+        grid-template-columns: 1fr;
+    }
+}

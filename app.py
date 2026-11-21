@@ -1,3 +1,10 @@
+import torch
+import matplotlib
+matplotlib.use("Agg")
+
+from pytorch_grad_cam import EigenCAM
+from pytorch_grad_cam.utils.image import show_cam_on_image
+
 from disease_knowledge import get_disease_details
 import cv2
 import supervision as sv
@@ -45,6 +52,58 @@ COLOR_MAP = {
     "Tungro": sv.Color(0, 255, 255),    # Cyan
     "Background": sv.Color(255, 255, 255)# White
 }
+
+def generate_eigen_cam(image):
+    """Generate EigenCAM overlay for a YOLO image."""
+    try:
+        cam_model = model.model
+        cam_model.eval()
+
+        target_layers = [cam_model.model[-2]]
+
+        cam = EigenCAM(
+            model=cam_model,
+            target_layers=target_layers
+        )
+
+        rgb_image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+        h, w = rgb_image.shape[:2]
+
+        rgb_image = cv2.resize(
+            rgb_image,
+            (640, 640),
+            interpolation=cv2.INTER_LINEAR
+        )
+
+        rgb_image = rgb_image.astype(np.float32) / 255.0
+
+        input_tensor = torch.from_numpy(
+            np.transpose(rgb_image, (2, 0, 1))[None, :]
+        ).float()
+
+        grayscale_cam = cam(
+            input_tensor=input_tensor,
+            targets=[None]
+        )[0]
+
+        cam_image = show_cam_on_image(
+            rgb_image,
+            grayscale_cam,
+            use_rgb=True
+        )
+
+        cam_image = cv2.resize(
+            cam_image,
+            (w, h),
+            interpolation=cv2.INTER_LINEAR
+        )
+
+        return cv2.cvtColor(cam_image, cv2.COLOR_RGB2BGR)
+
+    except Exception as e:
+        logger.error(f"EigenCAM generation failed: {e}")
+        return None
 
 def allowed_file(filename):
     """Check if the file has an allowed extension."""
@@ -134,15 +193,35 @@ def process_image(image_path):
             )
             y_offset += 30
 
-        # Save the annotated image with a unique filename (using timestamp)
+        # Save annotated detection image
         timestamp = int(time.time())
-        output_filename = os.path.join(app.config['UPLOAD_FOLDER'], f'output_{timestamp}.jpg')
-        cv2.imwrite(output_filename, annotated_image)
-        logger.info(f"Annotated image saved as: {output_filename}")
 
-        # Return the relative path for URL generation
+        output_filename = os.path.join(
+            app.config['UPLOAD_FOLDER'],
+            f'output_{timestamp}.jpg'
+        )
+        cv2.imwrite(output_filename, annotated_image)
+
         output_path = f'uploads/output_{timestamp}.jpg'
-        return output_path, None, disease_counts
+
+        # Generate EigenCAM image
+        xai_image = generate_eigen_cam(image)
+
+        xai_path = None
+
+        if xai_image is not None:
+            xai_filename = os.path.join(
+                app.config['UPLOAD_FOLDER'],
+                f'xai_{timestamp}.jpg'
+            )
+
+            cv2.imwrite(xai_filename, xai_image)
+            xai_path = f'uploads/xai_{timestamp}.jpg'
+
+        logger.info(f"Annotated image saved: {output_path}")
+        logger.info(f"EigenCAM image saved: {xai_path}")
+
+        return output_path, None, disease_counts, xai_path
 
     except Exception as e:
         logger.error(f"Error processing image: {e}")
@@ -158,6 +237,8 @@ def upload_file():
     """Handle file upload and display results."""
     error = None
     output_image = None
+    original_image = None
+    xai_image = None
     disease_summary = {}
     disease_details = []
     plant_health_status = "inconclusive"
@@ -179,13 +260,17 @@ def upload_file():
                 logger.info(f"File uploaded: {filepath}")
 
                 # Process the image
-                output_path, processing_error, disease_counts = process_image(filepath)
+                output_path, processing_error, disease_counts, xai_path = process_image(filepath)
 
                 if processing_error:
                     error = processing_error
 
                 else:
                     output_image = url_for('static', filename=output_path)
+                    original_image = url_for('static', filename=f'uploads/{filename}')
+
+                    if xai_path:
+                        xai_image = url_for('static', filename=xai_path)
 
                     disease_summary = disease_counts
 
@@ -212,6 +297,8 @@ def upload_file():
     return render_template(
         "index.html",
         output_image=output_image,
+        original_image=original_image,
+        xai_image=xai_image,
         disease_summary=disease_summary,
         disease_details=disease_details,
         plant_health_status=plant_health_status

@@ -1,0 +1,13 @@
+train: ./train/images
+val: ./valid/images
+test: ./test/images
+
+nc: 8
+names: ['Blight', 'Brown spot', 'False Smut', 'Healthy', 'Leaf Smut', 'Rice blast', 'Stem Rot', 'Tungro']
+
+roboflow:
+  workspace: project-jezsc
+  project: detecting-rice-crop-diseases-hfcks
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/project-jezsc/detecting-rice-crop-diseases-hfcks/dataset/1
