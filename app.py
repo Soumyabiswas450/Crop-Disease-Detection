@@ -341,6 +341,8 @@ def upload_file():
         disease_details=disease_details,
         plant_health_status=plant_health_status
     )
+from severity_routes import register_severity_routes
+register_severity_routes(app, model, allowed_file)
 if __name__ == '__main__':
     # Disable Flask auto-reloading to prevent interruptions
     app.run(debug=True, use_reloader=False)
