@@ -205,7 +205,40 @@ def process_image(image_path):
         output_path = f'uploads/output_{timestamp}.jpg'
 
         # Generate EigenCAM image
+        # Generate EigenCAM image
         xai_image = generate_eigen_cam(image)
+
+        # Overlay YOLO detection boxes on the EigenCAM image
+        if xai_image is not None and len(detections) > 0:
+            for detection_idx, (xyxy, color) in enumerate(zip(detections.xyxy, colors)):
+                x1, y1, x2, y2 = map(int, xyxy)
+
+                # Convert supervision color to OpenCV BGR
+                bgr_color = (0, 255, 255)
+
+                cv2.rectangle(
+                    xai_image,
+                    (x1, y1),
+                    (x2, y2),
+                    bgr_color,
+                    2
+                )
+
+                class_id = detections.class_id[detection_idx]
+                class_name = results.names[class_id]
+                confidence = detections.confidence[detection_idx]
+
+                label = f"{class_name}: {confidence:.2f}"
+
+                cv2.putText(
+                    xai_image,
+                    label,
+                    (x1, max(y1 - 10, 20)),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    0.6,
+                    bgr_color,
+                    2
+                )
 
         xai_path = None
 
@@ -223,9 +256,12 @@ def process_image(image_path):
 
         return output_path, None, disease_counts, xai_path
 
+
     except Exception as e:
+
         logger.error(f"Error processing image: {e}")
-        return None, f"Error: {str(e)}", {}
+
+        return None, f"Error: {str(e)}", {}, None
 
 @app.route('/favicon.ico')
 def favicon():
@@ -264,6 +300,7 @@ def upload_file():
 
                 if processing_error:
                     error = processing_error
+                    logger.error(f"Image processing failed: {processing_error}")
 
                 else:
                     output_image = url_for('static', filename=output_path)
@@ -296,6 +333,7 @@ def upload_file():
 
     return render_template(
         "index.html",
+        error=error,
         output_image=output_image,
         original_image=original_image,
         xai_image=xai_image,
