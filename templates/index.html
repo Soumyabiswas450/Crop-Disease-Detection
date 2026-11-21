@@ -130,7 +130,29 @@
       </div>
     </div>
     {% endif %}
+    <!-- Disease Severity -->
+    {% if severity_image and severity_data %}
+    <div class="comparison-card">
+      <div class="summary-title">DISEASE SEVERITY</div>
 
+      <div class="result-image-wrap">
+        <img src="{{ severity_image }}"
+             alt="Leaf lesion segmentation overlay"
+             class="result-image">
+      </div>
+
+      <div class="result-meta">
+        <span>Estimated severity</span>
+        <strong>{{ severity_data.severity_percent }}%</strong>
+        <a href="{{ severity_image }}" download class="download-link">Download ↗</a>
+      </div>
+
+      <div class="result-meta">
+        <span>Leaf pixels: {{ severity_data.leaf_pixels }}</span>
+        <span>Lesion pixels: {{ severity_data.lesion_pixels }}</span>
+      </div>
+    </div>
+    {% endif %}
   </div>
 
   <p class="knowledge-disclaimer">

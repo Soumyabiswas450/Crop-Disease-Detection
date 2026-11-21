@@ -4,8 +4,9 @@ matplotlib.use("Agg")
 
 from pytorch_grad_cam import EigenCAM
 from pytorch_grad_cam.utils.image import show_cam_on_image
-
 from disease_knowledge import get_disease_details
+from severity_segmentation import estimate_leaf_lesion_pixels
+
 import cv2
 import supervision as sv
 from ultralytics import YOLO
@@ -117,7 +118,7 @@ def process_image(image_path):
         image = cv2.imread(image_path)
         if image is None:
             logger.error("Failed to load image")
-            return None, "Error: Could not load image", {}
+            return None, "Error: Could not load image", {}, None
 
         # Resize image for consistent processing
         target_width, target_height = 1280, 720
@@ -126,6 +127,12 @@ def process_image(image_path):
 
         # Run YOLO detection
         results = model(image)[0]
+        try:
+            severity_result = estimate_leaf_lesion_pixels(image)
+        except ValueError as e:
+            logger.warning(f"Severity estimation failed: {e}")
+            severity_result = None
+
         detections = sv.Detections.from_ultralytics(results)
         logger.info("YOLO detection completed")
 
@@ -205,7 +212,6 @@ def process_image(image_path):
         output_path = f'uploads/output_{timestamp}.jpg'
 
         # Generate EigenCAM image
-        # Generate EigenCAM image
         xai_image = generate_eigen_cam(image)
 
         # Overlay YOLO detection boxes on the EigenCAM image
@@ -254,7 +260,19 @@ def process_image(image_path):
         logger.info(f"Annotated image saved: {output_path}")
         logger.info(f"EigenCAM image saved: {xai_path}")
 
-        return output_path, None, disease_counts, xai_path
+        severity_path = None
+
+        if severity_result is not None:
+            severity_filename = f'severity_{timestamp}.jpg'
+            severity_full_path = os.path.join(
+                app.config['UPLOAD_FOLDER'],
+                severity_filename
+            )
+
+            cv2.imwrite(severity_full_path, severity_result["overlay"])
+            severity_path = f'uploads/{severity_filename}'
+
+        return output_path, None, disease_counts, xai_path, severity_result, severity_path
 
 
     except Exception as e:
@@ -278,6 +296,8 @@ def upload_file():
     disease_summary = {}
     disease_details = []
     plant_health_status = "inconclusive"
+    severity_image = None
+    severity_data = None
 
     if request.method == 'POST':
         # Check if a file was uploaded
@@ -296,7 +316,7 @@ def upload_file():
                 logger.info(f"File uploaded: {filepath}")
 
                 # Process the image
-                output_path, processing_error, disease_counts, xai_path = process_image(filepath)
+                output_path, processing_error, disease_counts, xai_path, severity_result, severity_path = process_image(filepath)
 
                 if processing_error:
                     error = processing_error
@@ -310,6 +330,16 @@ def upload_file():
                         xai_image = url_for('static', filename=xai_path)
 
                     disease_summary = disease_counts
+
+                    if severity_path:
+                        severity_image = url_for('static', filename=severity_path)
+
+                    if severity_result:
+                        severity_data = {
+                            "severity_percent": severity_result["severity_percent"],
+                            "leaf_pixels": severity_result["leaf_pixels"],
+                            "lesion_pixels": severity_result["lesion_pixels"]
+                        }
 
                     # Determine overall plant health status
                     detected_diseases = [
@@ -339,7 +369,9 @@ def upload_file():
         xai_image=xai_image,
         disease_summary=disease_summary,
         disease_details=disease_details,
-        plant_health_status=plant_health_status
+        plant_health_status=plant_health_status,
+        severity_image = severity_image,
+        severity_data = severity_data
     )
 from severity_routes import register_severity_routes
 register_severity_routes(app, model, allowed_file)
